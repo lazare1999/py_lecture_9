@@ -96,3 +96,69 @@ def delete_item(item_id: int):
     db.commit()
 
     return item_to_delete
+
+
+class Users(BaseModel):  # serializer
+    id: int
+    name: str
+
+    class Config:
+        orm_mode = True
+
+
+@app.get('/users', response_model=List[Users], status_code=200)
+def get_all_items():
+    return db.query(models.Users).all()
+
+
+@app.post('/users', response_model=Users,
+          status_code=status.HTTP_201_CREATED)
+def create_an_item(users: Users):
+    db_user = db.query(models.Users).filter(models.Users.name == users.name).first()
+
+    if db_user is not None:
+        raise HTTPException(detail="user already exists")
+
+    new_user = models.Item(
+        name=users.name,
+    )
+
+    db.add(new_user)
+    db.commit()
+
+    return new_user
+
+
+@app.get('/users/{user_id}', response_model=Users, status_code=status.HTTP_200_OK)
+def get_an_item(user_id: int):
+    user = db.query(models.Users).filter(models.Users.id == user_id).first()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resource Not Found")
+
+    return user
+
+
+@app.put('/users/{user_id}', response_model=Users, status_code=status.HTTP_200_OK)
+def update_an_item(user_id: int, users: Users):
+    user_to_update = db.query(models.Users).filter(models.Users.id == user_id).first()
+
+    if user_to_update is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resource Not Found")
+
+    user_to_update.name = users.name
+
+    db.commit()
+    return user_to_update
+
+
+@app.delete('/users/{user_id}')
+def delete_item(user_id: int):
+    user_to_delete = db.query(models.Users).filter(models.Users.id == user_id).first()
+
+    if user_to_delete is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User Not Found")
+
+    db.delete(user_to_delete)
+    db.commit()
+
+    return user_to_delete
